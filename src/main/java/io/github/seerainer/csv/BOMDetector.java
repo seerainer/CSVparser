@@ -42,14 +42,14 @@ public class BOMDetector {
 		if ((data[0] & 0xFF) == 0xFF && (data[1] & 0xFF) == 0xFE) {
 			// Check if it's UTF-32 LE (FF FE 00 00)
 			if (data.length >= 4 && data[2] == 0 && data[3] == 0) {
-				return new BOMInfo(Charset.forName("UTF-32LE"), 4);
+				return new BOMInfo(StandardCharsets.UTF_32LE, 4);
 			}
 			return new BOMInfo(StandardCharsets.UTF_16LE, 2);
 		}
 
 		// UTF-32 BE BOM: 00 00 FE FF
 		if (data.length >= 4 && data[0] == 0 && data[1] == 0 && (data[2] & 0xFF) == 0xFE && (data[3] & 0xFF) == 0xFF) {
-			return new BOMInfo(Charset.forName("UTF-32BE"), 4);
+			return new BOMInfo(StandardCharsets.UTF_32BE, 4);
 		}
 
 		// No BOM detected
