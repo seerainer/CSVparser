@@ -5,52 +5,9 @@ import java.security.SecureRandom;
 import io.github.seerainer.csv.CSVConfiguration;
 import io.github.seerainer.csv.CSVParseException;
 import io.github.seerainer.csv.CSVParser;
+import io.github.seerainer.csv.CSVParsingOptions;
 
 public class Benchmark {
-
-	public static void startBenchmark() {
-		final var config = CSVConfiguration.builder().delimiter(',').quote('"').trimWhitespace(true)
-				.initialBufferSize(2048).build();
-
-		final var parser = new CSVParser(config);
-
-		// Generate test data
-		final var testData = generateTestData(10000, 10);
-
-		System.out.println("Generated CSV with ~" + testData.length() + " characters");
-
-		// Warm up JVM
-		for (var i = 0; i < 5; i++) {
-			try {
-				parser.parseString(testData);
-			} catch (final CSVParseException e) {
-				e.printStackTrace();
-			}
-		}
-
-		// Benchmark
-		final var startTime = System.nanoTime();
-		final var iterations = 100;
-
-		for (var i = 0; i < iterations; i++) {
-			try {
-				final var records = parser.parseString(testData);
-				if (i == 0) {
-					System.out.println("Parsed " + records.size() + " records");
-				}
-			} catch (final CSVParseException e) {
-				e.printStackTrace();
-			}
-		}
-
-		final var endTime = System.nanoTime();
-		final var totalTime = endTime - startTime;
-		final var avgTime = totalTime / (double) iterations / 1_000_000; // Convert to milliseconds
-
-		System.out.printf("Average parsing time: %.2f ms%n", Double.valueOf(avgTime));
-		System.out.printf("Throughput: %.2f MB/s%n",
-				Double.valueOf((testData.length() / 1024.0 / 1024.0) / (avgTime / 1000.0)));
-	}
 
 	private static String generateTestData(final int rows, final int columns) {
 		final var sb = new StringBuilder();
@@ -88,5 +45,51 @@ public class Benchmark {
 		}
 
 		return sb.toString();
+	}
+
+	public static void main(final String[] args) {
+		final var config = CSVConfiguration.builder().delimiter(',').quote('"').trimWhitespace(true)
+				.initialBufferSize(2048).build();
+
+		final var preserveOptions = CSVParsingOptions.builder().build();
+
+		final var parser = new CSVParser(config, preserveOptions);
+
+		// Generate test data
+		final var testData = generateTestData(10000, 10);
+
+		System.out.println("Generated CSV with ~" + testData.length() + " characters");
+
+		// Warm up JVM
+		for (var i = 0; i < 5; i++) {
+			try {
+				parser.parseByteArray(testData.getBytes());
+			} catch (final CSVParseException e) {
+				e.printStackTrace();
+			}
+		}
+
+		// Benchmark
+		final var startTime = System.nanoTime();
+		final var iterations = 100;
+
+		for (var i = 0; i < iterations; i++) {
+			try {
+				final var records = parser.parseByteArray(testData.getBytes());
+				if (i == 0) {
+					System.out.println("Parsed " + records.size() + " records");
+				}
+			} catch (final CSVParseException e) {
+				e.printStackTrace();
+			}
+		}
+
+		final var endTime = System.nanoTime();
+		final var totalTime = endTime - startTime;
+		final var avgTime = totalTime / (double) iterations / 1_000_000; // Convert to milliseconds
+
+		System.out.printf("Average parsing time: %.2f ms%n", Double.valueOf(avgTime));
+		System.out.printf("Throughput: %.2f MB/s%n",
+				Double.valueOf((testData.length() / 1024.0 / 1024.0) / (avgTime / 1000.0)));
 	}
 }

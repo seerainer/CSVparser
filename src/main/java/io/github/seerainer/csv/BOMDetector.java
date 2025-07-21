@@ -55,4 +55,7 @@ public class BOMDetector {
 		// No BOM detected
 		return new BOMInfo(StandardCharsets.UTF_8, 0);
 	}
+
+	private BOMDetector() {
+	}
 }

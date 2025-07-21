@@ -14,7 +14,7 @@ A fast, flexible, and modern CSV parser for Java. Supports custom delimiters, qu
 
 ## Quick Start
 
-Add the source files to your Java project. See `CSVParserDemo.java` for usage examples.
+Add the source files to your Java project. See `Demo.java` for usage examples.
 
 ```java
 import io.github.seerainer.csv.*;
@@ -67,5 +67,6 @@ Parsing errors throw `CSVParseException` with line and position details.
 Run the main demo:
 
 ```shell
-java io.github.seerainer.csv.demo.CSVParserDemo
+java io.github.seerainer.csv.demo.Demo
 ```
+

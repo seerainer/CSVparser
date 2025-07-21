@@ -12,7 +12,6 @@ public class CSVConfiguration {
 		private char escape = '"';
 		private int initialBufferSize = 1024;
 		private int maxFieldSize = 1024 * 1024;
-		private int readBufferSize = 8192;
 
 		private Charset encoding = StandardCharsets.UTF_8;
 
@@ -55,11 +54,6 @@ public class CSVConfiguration {
 			return this;
 		}
 
-		public Builder readBufferSize(final int size) {
-			this.readBufferSize = size;
-			return this;
-		}
-
 		public Builder trimWhitespace(final boolean trim) {
 			this.trimWhitespace = trim;
 			return this;
@@ -77,7 +71,6 @@ public class CSVConfiguration {
 	private final char escape;
 	private final int initialBufferSize;
 	private final int maxFieldSize;
-	private final int readBufferSize;
 
 	private final Charset encoding;
 
@@ -89,7 +82,6 @@ public class CSVConfiguration {
 		this.initialBufferSize = builder.initialBufferSize;
 		this.maxFieldSize = builder.maxFieldSize;
 		this.quote = builder.quote;
-		this.readBufferSize = builder.readBufferSize;
 		this.trimWhitespace = builder.trimWhitespace;
 	}
 
@@ -115,10 +107,6 @@ public class CSVConfiguration {
 
 	public char getQuote() {
 		return quote;
-	}
-
-	public int getReadBufferSize() {
-		return readBufferSize;
 	}
 
 	public boolean isDetectBOM() {
