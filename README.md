@@ -10,7 +10,9 @@ A fast, flexible, and modern CSV parser for Java. Supports custom delimiters, qu
 - **BOM Detection:** Automatically detects and handles Byte Order Marks.
 - **Error Handling:** Detailed exceptions with line and position info.
 - **Efficient Parsing:** Optimized for large files and high throughput.
-- **Flexible Input:** Parse from strings, byte arrays, files, or streams.
+- **Flexible Input:** Parse from byte arrays (with encoding), and easily extend to files or streams.
+- **Detailed Field Info:** Each field includes metadata (quoted, empty, null, position, etc).
+- **Configurable Parsing Options:** Control error tolerance, empty/null handling, line skipping, and more.
 
 ## Quick Start
 
@@ -27,9 +29,10 @@ public class Example {
             .trimWhitespace(true)
             .build();
 
-        var parser = new CSVParser(config);
+        var options = CSVParsingOptions.builder().build();
+        var parser = new CSVParser(config, options);
         var csv = "Name,Age\n\"Alice\",30\nBob,25";
-        var records = parser.parseString(csv);
+        var records = parser.parseByteArray(csv.getBytes());
 
         for (CSVRecord record : records) {
             System.out.println(record);
@@ -53,14 +56,26 @@ Customize parsing via the builder:
 
 ## Parsing Methods
 
-- `parseString(String csvContent)`
-- `parseByteArray(byte[] data)`
-- `parseFile(Path filePath)`
-- `parseInputStream(InputStream inputStream)`
+- `parseByteArray(byte[] data)` — Parse CSV from a byte array (with encoding and BOM support)
+
+## Parsing Options
+
+Configure parsing behavior with `CSVParsingOptions.builder()`:
+
+- `preserveEmptyFields(boolean)` — Keep empty fields (default: `true`)
+- `treatConsecutiveDelimitersAsEmpty(boolean)` — Treat consecutive delimiters as empty fields (default: `true`)
+- `skipEmptyLines(boolean)` — Skip empty lines (default: `false`)
+- `skipBlankLines(boolean)` — Skip blank (whitespace-only) lines (default: `false`)
+- `nullValueRepresentation(String)` — String to treat as null (e.g., `"NULL"`)
+- `convertEmptyToNull(boolean)` — Convert empty fields to null
+- `strictQuoting(boolean)` — Enforce strict quoting rules (default: `true`)
+- `allowUnescapedQuotesInFields(boolean)` — Allow unescaped quotes in fields
+- `failOnMalformedRecord(boolean)` — Throw on malformed records (default: `true`)
+- `trackFieldPositions(boolean)` — Track field positions for debugging
 
 ## Error Handling
 
-Parsing errors throw `CSVParseException` with line and position details.
+Parsing errors throw `CSVParseException` with line and position details. If `failOnMalformedRecord(false)` is set, errors are attached to each `CSVRecord`.
 
 ## Demo
 
@@ -70,3 +85,4 @@ Run the main demo:
 java io.github.seerainer.csv.demo.Demo
 ```
 
+See `Demo.java` for comprehensive usage examples, including BOM handling, encodings, error tolerance, and more.
