@@ -29,11 +29,7 @@ public class Example {
             .trimWhitespace(true)
             .build();
 
-        var options = CSVParsingOptions.builder()
-            .allowUnescapedQuotesInFields(true)
-            .failOnMalformedRecord(false)
-            .build();
-
+        var options = CSVParsingOptions.builder().build();
         var parser = new CSVParser(config, options);
         var csv = "Name,Age\n\"Alice\",30\nBob,25";
         var records = parser.parseByteArray(csv.getBytes());

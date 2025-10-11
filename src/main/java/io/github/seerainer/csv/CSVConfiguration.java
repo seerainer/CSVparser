@@ -4,116 +4,115 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 public class CSVConfiguration {
-	public static class Builder {
-		private boolean trimWhitespace = true;
-		private boolean detectBOM = true;
-		private char delimiter = ',';
-		private char quote = '"';
-		private char escape = '"';
-		private int initialBufferSize = 1024;
-		private int maxFieldSize = 1024 * 1024;
+    private final boolean detectBOM;
+    private final boolean trimWhitespace;
+    private final char delimiter;
+    private final char quote;
+    private final char escape;
+    private final int initialBufferSize;
+    private final int maxFieldSize;
+    private final Charset encoding;
 
-		private Charset encoding = StandardCharsets.UTF_8;
+    public CSVConfiguration(final Builder builder) {
+	this.delimiter = builder.delimiter;
+	this.detectBOM = builder.detectBOM;
+	this.encoding = builder.encoding;
+	this.escape = builder.escape;
+	this.initialBufferSize = builder.initialBufferSize;
+	this.maxFieldSize = builder.maxFieldSize;
+	this.quote = builder.quote;
+	this.trimWhitespace = builder.trimWhitespace;
+    }
 
-		public CSVConfiguration build() {
-			return new CSVConfiguration(this);
-		}
+    public static Builder builder() {
+	return new Builder();
+    }
 
-		public Builder delimiter(final char c) {
-			this.delimiter = c;
-			return this;
-		}
+    public char getDelimiter() {
+	return delimiter;
+    }
 
-		public Builder detectBOM(final boolean detect) {
-			this.detectBOM = detect;
-			return this;
-		}
+    public Charset getEncoding() {
+	return encoding;
+    }
 
-		public Builder encoding(final Charset cs) {
-			this.encoding = cs;
-			return this;
-		}
+    public char getEscape() {
+	return escape;
+    }
 
-		public Builder escape(final char c) {
-			this.escape = c;
-			return this;
-		}
+    public int getInitialBufferSize() {
+	return initialBufferSize;
+    }
 
-		public Builder initialBufferSize(final int size) {
-			this.initialBufferSize = size;
-			return this;
-		}
+    public int getMaxFieldSize() {
+	return maxFieldSize;
+    }
 
-		public Builder maxFieldSize(final int size) {
-			this.maxFieldSize = size;
-			return this;
-		}
+    public char getQuote() {
+	return quote;
+    }
 
-		public Builder quote(final char c) {
-			this.quote = c;
-			return this;
-		}
+    public boolean isDetectBOM() {
+	return detectBOM;
+    }
 
-		public Builder trimWhitespace(final boolean trim) {
-			this.trimWhitespace = trim;
-			return this;
-		}
+    public boolean isTrimWhitespace() {
+	return trimWhitespace;
+    }
+
+    public static class Builder {
+	private boolean trimWhitespace = true;
+	private boolean detectBOM = true;
+	private char delimiter = ',';
+	private char quote = '"';
+	private char escape = '"';
+	private int initialBufferSize = 1024;
+	private int maxFieldSize = 1024 * 1024;
+
+	private Charset encoding = StandardCharsets.UTF_8;
+
+	public CSVConfiguration build() {
+	    return new CSVConfiguration(this);
 	}
 
-	public static Builder builder() {
-		return new Builder();
+	public Builder delimiter(final char c) {
+	    this.delimiter = c;
+	    return this;
 	}
 
-	private final boolean detectBOM;
-	private final boolean trimWhitespace;
-	private final char delimiter;
-	private final char quote;
-	private final char escape;
-	private final int initialBufferSize;
-	private final int maxFieldSize;
-
-	private final Charset encoding;
-
-	public CSVConfiguration(final Builder builder) {
-		this.delimiter = builder.delimiter;
-		this.detectBOM = builder.detectBOM;
-		this.encoding = builder.encoding;
-		this.escape = builder.escape;
-		this.initialBufferSize = builder.initialBufferSize;
-		this.maxFieldSize = builder.maxFieldSize;
-		this.quote = builder.quote;
-		this.trimWhitespace = builder.trimWhitespace;
+	public Builder detectBOM(final boolean detect) {
+	    this.detectBOM = detect;
+	    return this;
 	}
 
-	public char getDelimiter() {
-		return delimiter;
+	public Builder encoding(final Charset cs) {
+	    this.encoding = cs;
+	    return this;
 	}
 
-	public Charset getEncoding() {
-		return encoding;
+	public Builder escape(final char c) {
+	    this.escape = c;
+	    return this;
 	}
 
-	public char getEscape() {
-		return escape;
+	public Builder initialBufferSize(final int size) {
+	    this.initialBufferSize = size;
+	    return this;
 	}
 
-	public int getInitialBufferSize() {
-		return initialBufferSize;
+	public Builder maxFieldSize(final int size) {
+	    this.maxFieldSize = size;
+	    return this;
 	}
 
-	public int getMaxFieldSize() {
-		return maxFieldSize;
+	public Builder quote(final char c) {
+	    this.quote = c;
+	    return this;
 	}
 
-	public char getQuote() {
-		return quote;
+	public Builder trimWhitespace(final boolean trim) {
+	    this.trimWhitespace = trim;
+	    return this;
 	}
-
-	public boolean isDetectBOM() {
-		return detectBOM;
-	}
-
-	public boolean isTrimWhitespace() {
-		return trimWhitespace;
-	}
+    }
 }

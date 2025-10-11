@@ -3,10 +3,11 @@ plugins {
 }
 
 group = 'io.github.seerainer.csv'
-version = '0.1.1'
+version = '0.1.2'
 
 repositories {
     mavenCentral()
+    maven { url = 'https://jitpack.io' }
 }
 
 java {
@@ -22,4 +23,3 @@ sourceSets {
         }
     }
 }
-
