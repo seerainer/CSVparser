@@ -25,16 +25,14 @@ sourceSets {
     }
 }
 
-afterEvaluate {
-    publishing {
-        publications {
-            release(MavenPublication) {
-                from components.release
-                
-                groupId = 'com.github.seerainer'
-                artifactId = 'CSVparser'
-                version = '0.1.2'
-            }
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            
+            groupId = 'com.github.seerainer'
+            artifactId = 'CSVparser'
+            version = '0.1.2'
         }
     }
 }
