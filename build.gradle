@@ -1,5 +1,6 @@
 plugins {
     id 'java-library'
+    id 'maven-publish'
 }
 
 group = 'io.github.seerainer.csv'
@@ -20,6 +21,20 @@ sourceSets {
     main {
         java {
             srcDirs = ['src/main/java']
+        }
+    }
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                from components.release
+                
+                groupId = 'com.github.seerainer'
+                artifactId = 'CSVparser'
+                version = '0.1.2'
+            }
         }
     }
 }
