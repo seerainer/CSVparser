@@ -14,6 +14,20 @@ A fast, flexible, and modern CSV parser for Java. Supports custom delimiters, qu
 - **Detailed Field Info:** Each field includes metadata (quoted, empty, null, position, etc).
 - **Configurable Parsing Options:** Control error tolerance, empty/null handling, line skipping, and more.
 
+## Gradle
+
+CSVparser dependency can be added via the jitpack repository.
+
+```gradle
+   repositories {
+        mavenCentral()
+        maven { url "https://jitpack.io" }
+   }
+   dependencies {
+         implementation 'com.github.seerainer:CSVparser:0.1.3'
+   }
+```
+
 ## Quick Start
 
 Add the source files to your Java project. See `Demo.java` for usage examples.
