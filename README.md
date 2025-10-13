@@ -21,7 +21,7 @@ CSVparser dependency can be added via the jitpack repository.
 ```gradle
    repositories {
         mavenCentral()
-        maven { url "https://jitpack.io" }
+        maven { url = 'https://jitpack.io' }
    }
    dependencies {
          implementation 'com.github.seerainer:CSVparser:0.1.3'
