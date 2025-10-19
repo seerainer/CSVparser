@@ -21,16 +21,16 @@ CSVparser dependency can be added via the jitpack repository.
 ```gradle
    repositories {
         mavenCentral()
-        maven { url = 'https://jitpack.io' }
+        maven { url "https://jitpack.io" }
    }
    dependencies {
-         implementation 'com.github.seerainer:CSVparser:0.1.3'
+         implementation 'com.github.seerainer:CSVparser:0.2.0'
    }
 ```
 
 ## Quick Start
 
-Add the source files to your Java project. See `Demo.java` for usage examples.
+Quick example:
 
 ```java
 import io.github.seerainer.csv.*;
@@ -70,7 +70,79 @@ Customize parsing via the builder:
 
 ## Parsing Methods
 
-- `parseByteArray(byte[] data)` — Parse CSV from a byte array (with encoding and BOM support)
+This library provides multiple parsing approaches — choose the one that best fits your memory and control requirements.
+
+### File-based parsing (load all records into memory)
+
+- Methods: `parseFile(File)`, `parseFile(Path)`, `parseFile(String)`, `parseInputStream(InputStream)`, `parseReader(Reader)`
+- Use when the file is reasonably small and you want all records in a List.
+
+Quick example:
+
+```java
+CSVParser parser = new CSVParser(config, options);
+// From path
+List<CSVRecord> records = parser.parseFile("data.csv");
+// From Reader
+try (Reader r = new FileReader("data.csv")) {
+    List<CSVRecord> r2 = parser.parseReader(r);
+}
+```
+
+### Iterator-based parsing (manual control, streaming)
+
+- Methods: `iterateReader(Reader)`, `iterateFile(File)`, `iterateFile(Path)`, `iterateFile(String)`
+- Returns `CSVRecordIterator` which implements `Iterator<CSVRecord>` and `Closeable`.
+- Use when you want to process records one-by-one and possibly stop early without reading the whole file.
+
+Quick example (try-with-resources):
+
+```java
+try (CSVRecordIterator it = parser.iterateFile("data.csv")) {
+    while (it.hasNext()) {
+        CSVRecord rec = it.next();
+        // process record
+        if (someCondition(rec)) break; // can stop early
+    }
+}
+```
+
+### Callback-based parsing (maximum memory efficiency)
+
+- Methods: `parseWithCallback(Reader, Consumer<CSVRecord>)`, `parseFileWithCallback(File/Path/String, Consumer<CSVRecord>)`
+- Use when processing very large files where you don't want to retain records in memory — records are delivered to your callback as they're parsed.
+
+Quick example:
+
+```java
+parser.parseFileWithCallback("large.csv", record -> {
+    // handle record, e.g. write to DB
+    db.insert(record.getFields());
+});
+
+// From Reader
+try (Reader r = new FileReader("data.csv")) {
+    parser.parseWithCallback(r, rec -> System.out.println(rec));
+}
+```
+
+### Byte-array and String parsing (in-memory sources)
+
+- Methods: `parseByteArray(byte[] data)`, `parseString(String csvContent)`
+- Use when the CSV content is already in memory (small to medium size).
+
+Quick example:
+
+```java
+byte[] bytes = Files.readAllBytes(Path.of("data.csv"));
+List<CSVRecord> records = parser.parseByteArray(bytes);
+
+List<CSVRecord> fromString = parser.parseString("A,B\n1,2\n");
+```
+
+Notes
+- All parsing methods may throw `IOException` (I/O errors) and `CSVParseException` (malformed CSV). Handle them as appropriate.
+- When using iterator or reader-based APIs, always close the returned `CSVRecordIterator` (it implements `Closeable`) — prefer try-with-resources to avoid leaking file handles.
 
 ## Parsing Options
 
@@ -90,13 +162,3 @@ Configure parsing behavior with `CSVParsingOptions.builder()`:
 ## Error Handling
 
 Parsing errors throw `CSVParseException` with line and position details. If `failOnMalformedRecord(false)` is set, errors are attached to each `CSVRecord`.
-
-## Demo
-
-Run the main demo:
-
-```shell
-java io.github.seerainer.csv.demo.Demo
-```
-
-See `Demo.java` for comprehensive usage examples, including BOM handling, encodings, error tolerance, and more.

@@ -1,13 +1,26 @@
 package io.github.seerainer.csv;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PushbackInputStream;
+import java.io.Reader;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class CSVParser {
 
     private final CSVConfiguration config;
     private final CSVParsingOptions options;
+
     private char[] charBuffer;
     private int charBufferPosition;
 
@@ -16,6 +29,12 @@ public class CSVParser {
 	this.options = options;
 	this.charBuffer = new char[config.getInitialBufferSize()];
 	this.charBufferPosition = 0;
+    }
+
+    // Overload: charset-aware conversion
+    private static char[] convertBytesToChars(final byte[] data, final int offset, final int length,
+	    final Charset charset) {
+	return new String(data, offset, length, charset).toCharArray();
     }
 
     private void addCurrentField(final List<CSVFieldInfo> fields, final boolean wasQuoted, final int startPos,
@@ -49,11 +68,40 @@ public class CSVParser {
 	charBuffer[charBufferPosition++] = ch;
     }
 
-    private char[] convertBytesToChars(final byte[] data, final int offset, final int length) {
-	return new String(data, offset, length, config.getEncoding()).toCharArray();
+    /**
+     * Create a Reader that respects BOM detection and selects the appropriate
+     * charset. Uses PushbackInputStream so bytes after the BOM are not lost.
+     */
+    private Reader createReaderHandlingBOM(final InputStream inputStream) throws IOException {
+	if (!config.isDetectBOM()) {
+	    return new InputStreamReader(inputStream, config.getEncoding());
+	}
+
+	final var pushback = new PushbackInputStream(inputStream, 4);
+	final var firstBytes = new byte[4];
+	final var bytesRead = pushback.read(firstBytes, 0, 4);
+	if (bytesRead == -1) {
+	    return new InputStreamReader(pushback, config.getEncoding());
+	}
+
+	final var bomInfo = BOMDetector.detectBOM(Arrays.copyOf(firstBytes, Math.min(bytesRead, 4)));
+	final var charsetToUse = bomInfo.getBomLength() > 0 ? bomInfo.getCharset() : config.getEncoding();
+
+	// Push back any bytes that are not part of the BOM so the reader sees them
+	if (bytesRead > bomInfo.getBomLength()) {
+	    pushback.unread(firstBytes, bomInfo.getBomLength(), bytesRead - bomInfo.getBomLength());
+	}
+
+	return new InputStreamReader(pushback, charsetToUse);
     }
 
     private void expandCharBuffer() {
+	// Check if we've already reached the maximum field size
+	if (charBuffer.length >= config.getMaxFieldSize()) {
+	    throw new IllegalStateException(new StringBuilder().append("Field size exceeds maximum allowed size of ")
+		    .append(config.getMaxFieldSize()).append(" characters").toString());
+	}
+
 	final var newSize = Math.min(charBuffer.length * 2, config.getMaxFieldSize());
 	final var newBuffer = new char[newSize];
 	System.arraycopy(charBuffer, 0, newBuffer, 0, charBufferPosition);
@@ -72,6 +120,40 @@ public class CSVParser {
 	return false;
     }
 
+    /**
+     * Create an iterator for parsing CSV records from a file
+     */
+    public CSVRecordIterator iterateFile(final File file) throws IOException {
+	try (final var inputStream = new FileInputStream(file);
+		final var reader = createReaderHandlingBOM(inputStream)) {
+	    return new CSVRecordIterator(reader, this);
+	}
+    }
+
+    /**
+     * Create an iterator for parsing CSV records from a file path
+     */
+    public CSVRecordIterator iterateFile(final Path path) throws IOException {
+	try (final var inputStream = Files.newInputStream(path);
+		final var reader = createReaderHandlingBOM(inputStream)) {
+	    return new CSVRecordIterator(reader, this);
+	}
+    }
+
+    /**
+     * Create an iterator for parsing CSV records from a file path string
+     */
+    public CSVRecordIterator iterateFile(final String filePath) throws IOException {
+	return iterateFile(new File(filePath));
+    }
+
+    /**
+     * Create an iterator for parsing CSV records from a Reader
+     */
+    public CSVRecordIterator iterateReader(final Reader reader) {
+	return new CSVRecordIterator(reader, this);
+    }
+
     public List<CSVRecord> parseByteArray(final byte[] data) throws CSVParseException {
 	return parseByteArray(data, 0, data.length);
     }
@@ -80,6 +162,7 @@ public class CSVParser {
 	    throws CSVParseException {
 	var dataOffset = offset;
 	var dataLength = length;
+	var charsetToUse = config.getEncoding();
 
 	if (config.isDetectBOM()) {
 	    final var bomInfo = BOMDetector
@@ -88,10 +171,11 @@ public class CSVParser {
 	    if (bomInfo.getBomLength() > 0) {
 		dataOffset += bomInfo.getBomLength();
 		dataLength -= bomInfo.getBomLength();
+		charsetToUse = bomInfo.getCharset();
 	    }
 	}
 
-	final var chars = convertBytesToChars(data, dataOffset, dataLength);
+	final var chars = convertBytesToChars(data, dataOffset, dataLength, charsetToUse);
 
 	return parseCharArrayWithOptions(chars);
     }
@@ -195,6 +279,81 @@ public class CSVParser {
 	}
     }
 
+    /**
+     * Parse CSV from a file
+     */
+    public List<CSVRecord> parseFile(final File file) throws IOException, CSVParseException {
+	try (final var inputStream = new FileInputStream(file)) {
+	    return parseInputStream(inputStream);
+	}
+    }
+
+    /**
+     * Parse CSV from a file path
+     */
+    public List<CSVRecord> parseFile(final Path path) throws IOException, CSVParseException {
+	try (final var inputStream = Files.newInputStream(path)) {
+	    return parseInputStream(inputStream);
+	}
+    }
+
+    /**
+     * Parse CSV from a file path string
+     */
+    public List<CSVRecord> parseFile(final String filePath) throws IOException, CSVParseException {
+	return parseFile(new File(filePath));
+    }
+
+    /**
+     * Parse CSV file using a callback for each record
+     */
+    public void parseFileWithCallback(final File file, final Consumer<CSVRecord> callback) throws IOException {
+	try (var inputStream = new FileInputStream(file); var reader = createReaderHandlingBOM(inputStream)) {
+	    parseWithCallback(reader, callback);
+	}
+    }
+
+    /**
+     * Parse CSV file using a callback for each record
+     */
+    public void parseFileWithCallback(final Path path, final Consumer<CSVRecord> callback) throws IOException {
+	try (var inputStream = Files.newInputStream(path); var reader = createReaderHandlingBOM(inputStream)) {
+	    parseWithCallback(reader, callback);
+	}
+    }
+
+    /**
+     * Parse CSV file using a callback for each record
+     */
+    public void parseFileWithCallback(final String filePath, final Consumer<CSVRecord> callback) throws IOException {
+	parseFileWithCallback(new File(filePath), callback);
+    }
+
+    /**
+     * Parse CSV from an InputStream
+     */
+    public List<CSVRecord> parseInputStream(final InputStream inputStream) throws IOException, CSVParseException {
+	try (final var reader = createReaderHandlingBOM(inputStream)) {
+	    return parseReader(reader);
+	}
+    }
+
+    /**
+     * Parse CSV from a Reader
+     */
+    public List<CSVRecord> parseReader(final Reader reader) throws IOException, CSVParseException {
+	final var bufferedReader = reader instanceof final BufferedReader b ? b : new BufferedReader(reader);
+	final var content = new StringBuilder();
+	final var buffer = new char[8192];
+	int charsRead;
+
+	while ((charsRead = bufferedReader.read(buffer)) != -1) {
+	    content.append(buffer, 0, charsRead);
+	}
+
+	return parseCharArrayWithOptions(content.toString().toCharArray());
+    }
+
     private RecordParseResult parseRecord(final char[] chars, final int startPosition, final int lineNumber)
 	    throws CSVParseException {
 	final List<CSVFieldInfo> fields = new ArrayList<>();
@@ -208,6 +367,7 @@ public class CSVParser {
 	var wasQuoted = false;
 	var recordIsEmpty = true;
 	var recordIsBlank = true;
+	var lineEndingFound = false;
 
 	while (position < chars.length) {
 	    final var currentChar = chars[position];
@@ -236,6 +396,7 @@ public class CSVParser {
 		    position++;
 		}
 
+		lineEndingFound = true;
 		break;
 	    }
 
@@ -277,6 +438,14 @@ public class CSVParser {
 	    }
 	}
 
+	// Handle EOF: add any remaining field data that wasn't terminated by a line
+	// ending
+	// Only add if we didn't already process the field during line-ending handling
+	if (!lineEndingFound && (state != ParseState.FIELD_START || charBufferPosition > 0
+		|| (options.isPreserveEmptyFields() && columnIndex > 0))) {
+	    addCurrentField(fields, wasQuoted, fieldStartPos, position, columnIndex);
+	}
+
 	// Create record
 	CSVRecord record = null;
 	if (!fields.isEmpty()) {
@@ -286,6 +455,24 @@ public class CSVParser {
 
 	return new RecordParseResult(record, position, lineNumber + 1, !errors.isEmpty(), errors.toArray(new String[0]),
 		recordIsEmpty, recordIsBlank);
+    }
+
+    /**
+     * Parse CSV from a String
+     */
+    public List<CSVRecord> parseString(final String csvContent) throws CSVParseException {
+	return parseCharArrayWithOptions(csvContent.toCharArray());
+    }
+
+    /**
+     * Parse CSV using a callback for each record (memory-efficient for large files)
+     */
+    public void parseWithCallback(final Reader reader, final Consumer<CSVRecord> callback) throws IOException {
+	try (var iterator = new CSVRecordIterator(reader, this)) {
+	    while (iterator.hasNext()) {
+		callback.accept(iterator.next());
+	    }
+	}
     }
 
     private void resetCharBuffer() {
