@@ -123,21 +123,21 @@ public class CSVParser {
     /**
      * Create an iterator for parsing CSV records from a file
      */
+    @SuppressWarnings("resource")
     public CSVRecordIterator iterateFile(final File file) throws IOException {
-	try (final var inputStream = new FileInputStream(file);
-		final var reader = createReaderHandlingBOM(inputStream)) {
-	    return new CSVRecordIterator(reader, this);
-	}
+	final var inputStream = new FileInputStream(file);
+	final var reader = createReaderHandlingBOM(inputStream);
+	return new CSVRecordIterator(reader, this);
     }
 
     /**
      * Create an iterator for parsing CSV records from a file path
      */
+    @SuppressWarnings("resource")
     public CSVRecordIterator iterateFile(final Path path) throws IOException {
-	try (final var inputStream = Files.newInputStream(path);
-		final var reader = createReaderHandlingBOM(inputStream)) {
-	    return new CSVRecordIterator(reader, this);
-	}
+	final var inputStream = Files.newInputStream(path);
+	final var reader = createReaderHandlingBOM(inputStream);
+	return new CSVRecordIterator(reader, this);
     }
 
     /**
